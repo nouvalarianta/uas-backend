@@ -1,17 +1,40 @@
 package main
 
-import "github.com/gofiber/fiber/v2"
+import (
+	"context"
+	"uas-backend/config"
+	"uas-backend/database"
+	"log"
+	"os"
+
+	"github.com/joho/godotenv"
+)
 
 func main() {
-	app := fiber.New()
+	if err := godotenv.Load(); err != nil {
+		log.Println("env tidak ditemukan")
+	}
 
-	// Route GET /
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"message": "Hello, Fiber!",
-		})
-	})
+	client, mDB, pgDB, err := database.ConnectDB()
+	if err != nil {
+		log.Fatalf("gagal konek databse %v", err)
+	}
+	defer client.Disconnect(context.Background())
+	defer pgDB.Close()
 
-	// Jalankan server pada port 3000
-	app.Listen(":3000")
+	app := config.NewApp(mDB, pgDB)
+
+	db1Name := os.Getenv("DATABASE_NAME_1")
+	log.Printf("Aplikasi berjalan dengan DATABASE_NAME: %s", db1Name)
+
+	db2Name := os.Getenv("DATABASE_NAME_2")
+	log.Printf("Aplikasi berjalan dengan DATABASE_NAME: %s", db2Name)
+
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
+	}
+	log.Printf("Server is starting on port :%s", port)
+	log.Fatal(app.Listen(":" + port))
 }
