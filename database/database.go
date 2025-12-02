@@ -13,7 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-func ConnectMongo() (*mongo.Client, *mongo.Database, error) {
+func ConnectMongo() (*mongo.Database, error) {
 	uri := os.Getenv("DATABASE_URI_1")
 	dbName := os.Getenv("DATABASE_NAME_1")
 	if uri == "" {
@@ -32,15 +32,15 @@ func ConnectMongo() (*mongo.Client, *mongo.Database, error) {
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if err := client.Ping(ctx, nil); err != nil {
 		_ = client.Disconnect(ctx)
-		return nil, nil, err
+		return nil, err
 	}
 
 	log.Printf("Connected to MongoDB %s (db: %s)", uri, dbName)
-	return client, client.Database(dbName), nil
+	return client.Database(dbName), nil
 }
 
 func ConnectPostgres() (*sql.DB, error) {
@@ -71,17 +71,17 @@ func ConnectPostgres() (*sql.DB, error) {
 }
 
 //koneksi ke dua database
-func ConnectDB() (*mongo.Client, *mongo.Database, *sql.DB, error) {
-	mClient, mDB, err := ConnectMongo()
+func ConnectDB() (*mongo.Database, *sql.DB, error) {
+	mDB, err := ConnectMongo()
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("connect mongo: %w", err)
+		return nil, nil, fmt.Errorf("connect mongo: %w", err)
 	}
 
 	pgDB, err := ConnectPostgres()
 	if err != nil {
-		_ = mClient.Disconnect(context.Background())
-		return nil, nil, nil, fmt.Errorf("connect postgres: %w", err)
+		_ = mDB.Client().Disconnect(context.Background())
+		return nil, nil, fmt.Errorf("connect postgres: %w", err)
 	}
 
-	return mClient, mDB, pgDB, nil
+	return mDB, pgDB, nil
 }

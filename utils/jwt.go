@@ -10,8 +10,9 @@ import (
 )
 
 type JwtCustomClaims struct {
-	UserID string `json:"user_id"`
-	Role   string `json:"role_id"`
+	UserID   string `json:"user_id"`
+	RoleID   string `json:"role_id"`
+	RoleName string `json:"name"`
 	jwt.RegisteredClaims
 }
 
@@ -24,9 +25,15 @@ func GenerateToken(user model.User) (string, error) {
 		expirationMinutes = 60
 	}
 
+	roleName := ""
+	if user.Role != nil {
+		roleName = user.Role.Name
+	}
+
 	claims := &JwtCustomClaims{
-		UserID: user.ID.String(),
-		Role:   user.RoleID.String(),
+		UserID:   user.ID.String(),
+		RoleID:   user.RoleID.String(),
+		RoleName: roleName,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Minute * time.Duration(expirationMinutes))),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),

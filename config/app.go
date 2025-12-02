@@ -3,6 +3,9 @@ package config
 import (
 	"database/sql"
 	"os"
+	"uas-backend/app/repository"
+	"uas-backend/app/service"
+	"uas-backend/route"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -34,6 +37,11 @@ func NewApp(mDB *mongo.Database, pgDB *sql.DB) *fiber.App {
 		AllowMethods: "GET,POST,HEAD,PUT,DELETE,PATCH",
 		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
 	}))
+
+	userRepo := repository.NewUserRepository(pgDB)
+	userService := service.NewUserService(userRepo)
+
+	route.SetRoute(app, userService)
 
 	return app
 }

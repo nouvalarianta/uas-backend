@@ -15,11 +15,11 @@ func main() {
 		log.Println("env tidak ditemukan")
 	}
 
-	client, mDB, pgDB, err := database.ConnectDB()
+	mDB, pgDB, err := database.ConnectDB()
 	if err != nil {
 		log.Fatalf("gagal konek databse %v", err)
 	}
-	defer client.Disconnect(context.Background())
+	defer mDB.Client().Disconnect(context.Background())
 	defer pgDB.Close()
 
 	app := config.NewApp(mDB, pgDB)
