@@ -2,16 +2,15 @@ package route
 
 /*
 5.1 Authentication
-POST   /api/v1/auth/login
 POST   /api/v1/auth/refresh
 POST   /api/v1/auth/logout
 GET    /api/v1/auth/profile
 5.2 Users (Admin)
-GET    /api/v1/users
-GET    /api/v1/users/:id
-POST   /api/v1/users
-PUT    /api/v1/users/:id
-DELETE /api/v1/users/:id
+// GET    /api/v1/users
+// GET    /api/v1/users/:id
+// POST   /api/v1/users
+// PUT    /api/v1/users/:id
+// DELETE /api/v1/users/:id
 PUT    /api/v1/users/:id/role
 5.4 Achievements
 GET    /api/v1/achievements                    // List (filtered by role)
@@ -37,7 +36,8 @@ GET    /api/v1/reports/student/:id
 */
 
 import (
-	"uas-backend/app/service"
+	service"uas-backend/app/service"
+	middleware"uas-backend/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -48,5 +48,40 @@ func SetRoute(
 ) {
 	api := app.Group("/api")
 
+	// Public routes - tidak perlu authentication
 	api.Post("/login", authuser.Login)
+
+	// === Admin dapat akses SEMUA endpoint di bawah ini ===
+
+	// Users Management - Admin only (pure admin)
+	api.Get("/users", middleware.Admin(), authuser.GetAll)
+	api.Get("/users/:id", middleware.Admin(), authuser.GetByID)
+	api.Post("/users", middleware.Admin(), authuser.Create)
+	api.Put("/users/:id", middleware.Admin(), authuser.Update)
+	api.Delete("/users/:id", middleware.Admin(), authuser.Delete)
+
+	// Achievements - Admin bisa semua, Mahasiswa bisa buat/edit/delete miliknya
+	// api.Get("/achievements", middleware.MultiRole("Admin", "Dosen Wali", "Mahasiswa"), achievementHandler.GetAll)
+	// api.Get("/achievements/:id", middleware.MultiRole("Admin", "Dosen Wali", "Mahasiswa"), achievementHandler.GetByID)
+	// api.Post("/achievements", middleware.MultiRole("Admin", "Mahasiswa"), achievementHandler.Create)
+	// api.Put("/achievements/:id", middleware.MultiRole("Admin", "Mahasiswa"), achievementHandler.Update)
+	// api.Delete("/achievements/:id", middleware.MultiRole("Admin", "Mahasiswa"), achievementHandler.Delete)
+
+	// Achievement Submission & Verification - Admin bisa semua, Mahasiswa submit, Dosen verify
+	// api.Post("/achievements/:id/submit", middleware.MultiRole("Admin", "Mahasiswa"), achievementHandler.Submit)
+	// api.Post("/achievements/:id/verify", middleware.MultiRole("Admin", "Dosen Wali"), achievementHandler.Verify)
+	// api.Post("/achievements/:id/reject", middleware.MultiRole("Admin", "Dosen Wali"), achievementHandler.Reject)
+
+	// Students - Admin bisa semua, Dosen Wali bisa lihat
+	// api.Get("/students", middleware.MultiRole("Admin", "Dosen Wali"), studentHandler.GetAll)
+	// api.Get("/students/:id", middleware.MultiRole("Admin", "Dosen Wali"), studentHandler.GetByID)
+	// api.Get("/students/:id/achievements", middleware.MultiRole("Admin", "Dosen Wali"), studentHandler.GetAchievements)
+
+	// Lecturers - Admin bisa semua
+	// api.Get("/lecturers", middleware.Admin(), lecturerHandler.GetAll)
+	// api.Get("/lecturers/:id/advisees", middleware.MultiRole("Admin", "Dosen Wali"), lecturerHandler.GetAdvisees)
+
+	// Reports - Admin bisa semua, Dosen Wali bisa lihat mahasiswa bimbingannya
+	// api.Get("/reports/statistics", middleware.MultiRole("Admin", "Dosen Wali"), reportHandler.GetStatistics)
+	// api.Get("/reports/student/:id", middleware.MultiRole("Admin", "Dosen Wali"), reportHandler.GetStudentReport)
 }
