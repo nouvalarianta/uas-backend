@@ -3,9 +3,9 @@ package config
 import (
 	"database/sql"
 	"os"
-	repository"uas-backend/app/repository"
-	service"uas-backend/app/service"
-	route"uas-backend/route"
+	repository "uas-backend/app/repository"
+	service "uas-backend/app/service"
+	route "uas-backend/route"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"

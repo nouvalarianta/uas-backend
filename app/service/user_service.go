@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-	"uas-backend/app/model"
+	model "uas-backend/app/model"
 	repository "uas-backend/app/repository"
-	"uas-backend/helper"
-	"uas-backend/utils"
+	helper "uas-backend/helper"
+	utils "uas-backend/utils"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -45,18 +45,41 @@ func (s *userservice) Login(c *fiber.Ctx) error {
 		return helper.ErrorResponse(c, fiber.StatusUnauthorized, "Username salah")
 	}
 
-	fmt.Println("user:", user)
-
 	if !utils.CheckPassword(req.Password, passwordHash) {
-		return helper.ErrorResponse(c, fiber.StatusUnauthorized, "password salah")
+		return helper.ErrorResponse(c, fiber.StatusUnauthorized, "Password salah")
 	}
 
-	token, err := utils.GenerateToken(*user)
+	permissions, err := s.userRepository.GetPermissionsByRoleID(user.RoleID)
+	if err != nil {
+		return helper.ErrorResponse(c, fiber.StatusInternalServerError, "Gagal mengambil permissions: "+err.Error())
+	}
+
+	fmt.Print(permissions)
+
+	token, err := utils.GenerateToken(*user, permissions)
 	if err != nil {
 		return helper.ErrorResponse(c, fiber.StatusInternalServerError, "Gagal membuat token")
 	}
 
-	return c.JSON(fiber.Map{"token": token})
+	refreshToken, err := utils.GenerateRefreshToken(*user, permissions)
+	if err != nil {
+		return helper.ErrorResponse(c, fiber.StatusInternalServerError, "Gagal membuat refresh token")
+	}
+
+	return c.JSON(fiber.Map{
+		"status": "success",
+		"data": fiber.Map{
+			"token":        token,
+			"refreshToken": refreshToken,
+			"user": fiber.Map{
+				"id":          user.ID,
+				"username":    user.Username,
+				"fullName":    user.FullName,
+				"role":        user.Role.Name,
+				"permissions": permissions,
+			},
+		},
+	})
 }
 
 func (s *userservice) GetAll(c *fiber.Ctx) error {
@@ -66,7 +89,6 @@ func (s *userservice) GetAll(c *fiber.Ctx) error {
 	order := c.Query("order", "desc")
 	search := c.Query("search", "")
 
-	// Validasi page dan limit
 	if page < 1 {
 		page = 1
 	}

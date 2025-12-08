@@ -36,8 +36,8 @@ GET    /api/v1/reports/student/:id
 */
 
 import (
-	service"uas-backend/app/service"
-	middleware"uas-backend/middleware"
+	service "uas-backend/app/service"
+	middleware "uas-backend/middleware"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -48,17 +48,27 @@ func SetRoute(
 ) {
 	api := app.Group("/api")
 
-	// Public routes - tidak perlu authentication
 	api.Post("/login", authuser.Login)
 
-	// === Admin dapat akses SEMUA endpoint di bawah ini ===
+	// === User Management Endpoints ===
+	// Permission-based authorization - role yang punya permission ini bisa akses
 
-	// Users Management - Admin only (pure admin)
-	api.Get("/users", middleware.Admin(), authuser.GetAll)
-	api.Get("/users/:id", middleware.Admin(), authuser.GetByID)
-	api.Post("/users", middleware.Admin(), authuser.Create)
-	api.Put("/users/:id", middleware.Admin(), authuser.Update)
-	api.Delete("/users/:id", middleware.Admin(), authuser.Delete)
+	api.Get("/users", middleware.RequirePermission("user:manage"), authuser.GetAll)
+	api.Get("/users/:id", middleware.RequirePermission("user:manage"), authuser.GetByID)
+	api.Post("/users", middleware.RequirePermission("user:manage"), authuser.Create)
+	api.Put("/users/:id", middleware.RequirePermission("user:manage"), authuser.Update)
+	api.Delete("/users/:id", middleware.RequirePermission("user:manage"), authuser.Delete)
+
+	// Contoh endpoint yang butuh salah satu dari beberapa permissions (OR logic)
+	// api.Get("/achievements", middleware.RequirePermission("achievement:read", "achievement:read_all"), achievementHandler.GetAll)
+
+	// Contoh endpoint yang butuh SEMUA permissions (AND logic)
+	// api.Post("/achievements/:id/verify", middleware.RequireAllPermissions("achievement:read", "achievement:verify"), achievementHandler.Verify)
+
+	// === Legacy Routes (berbasis role) - DEPRECATED ===
+	// Uncomment jika masih perlu backward compatibility
+	// api.Get("/users", middleware.Admin(), authuser.GetAll)
+	// api.Get("/users/:id", middleware.Admin(), authuser.GetByID)
 
 	// Achievements - Admin bisa semua, Mahasiswa bisa buat/edit/delete miliknya
 	// api.Get("/achievements", middleware.MultiRole("Admin", "Dosen Wali", "Mahasiswa"), achievementHandler.GetAll)

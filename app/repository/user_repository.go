@@ -20,6 +20,7 @@ type UserRepository interface {
 	Create(username, email, passwordHash, fullName string, roleID uuid.UUID) (*model.User, error)
 	Update(id uuid.UUID, req *model.UpdateUserRequest) (*model.User, error)
 	Delete(id uuid.UUID) error
+	GetPermissionsByRoleID(roleID uuid.UUID) ([]string, error)
 }
 
 type userrepository struct {
@@ -230,9 +231,9 @@ func (r *userrepository) Update(id uuid.UUID, req *model.UpdateUserRequest) (*mo
 }
 
 func (r *userrepository) Delete(id uuid.UUID) error {
-	query := `UPDATE users SET is_active = $1, updated_at = $1 WHERE id = $2 AND is_active IS NULL`
+	query := `UPDATE users SET is_active = $1, updated_at = $2 WHERE id = $3 AND is_active IS NULL`
 	now := time.Now()
-	result, err := r.db.Exec(query, now, id)
+	result, err := r.db.Exec(query, now, now, id)
 	if err != nil {
 		return err
 	}
@@ -246,4 +247,31 @@ func (r *userrepository) Delete(id uuid.UUID) error {
 	}
 
 	return nil
+}
+
+func (r *userrepository) GetPermissionsByRoleID(roleID uuid.UUID) ([]string, error) {
+	query := `
+		SELECT p.name
+		FROM permissions p
+		INNER JOIN role_permissions rp ON p.id = rp.permission_id
+		WHERE rp.role_id = $1
+		ORDER BY p.name
+	`
+
+	rows, err := r.db.Query(query, roleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var permissions []string
+	for rows.Next() {
+		var permissionName string
+		if err := rows.Scan(&permissionName); err != nil {
+			return nil, err
+		}
+		permissions = append(permissions, permissionName)
+	}
+
+	return permissions, nil
 }
