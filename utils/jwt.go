@@ -71,3 +71,18 @@ func GenerateRefreshToken(user model.User, permissions []string) (string, error)
 
 	return token.SignedString([]byte(secretKey))
 }
+
+func ParseToken(tokenString string) (*JwtCustomClaims, error) {
+	secretKey := os.Getenv("JWT_SECRET_KEY")
+	claims := &JwtCustomClaims{}
+
+	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(secretKey), nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, err
+	}
+
+	return claims, nil
+}

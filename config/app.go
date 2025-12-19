@@ -38,10 +38,23 @@ func NewApp(mDB *mongo.Database, pgDB *sql.DB) *fiber.App {
 		AllowHeaders: "Origin,Content-Type,Accept,Authorization",
 	}))
 
+	// Repositories
 	userRepo := repository.NewUserRepository(pgDB)
-	userService := service.NewUserService(userRepo)
+	achievementRepo := repository.NewAchievementRepository(mDB)
+	achievementReferenceRepo := repository.NewAchievementReferenceRepository(pgDB)
+	studentRepo := repository.NewStudentRepository(pgDB)
+	lecturerRepo := repository.NewLecturerRepository(pgDB)
+	reportRepo := repository.NewReportRepository(mDB, pgDB)
 
-	route.SetRoute(app, userService)
+	// Services
+	userService := service.NewUserService(userRepo)
+	achievementService := service.NewAchievementService(achievementRepo, achievementReferenceRepo)
+	studentService := service.NewStudentService(studentRepo, achievementRepo, achievementReferenceRepo)
+	lecturerService := service.NewLecturerService(lecturerRepo)
+	reportService := service.NewReportService(reportRepo)
+
+	// Routes
+	route.SetRoute(app, userService, achievementService, studentService, lecturerService, reportService)
 
 	return app
 }

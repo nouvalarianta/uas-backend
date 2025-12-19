@@ -23,6 +23,11 @@ func RequirePermission(requiredPermissions ...string) fiber.Handler {
 		}
 
 		tokenString := parts[1]
+
+		if utils.IsBlacklisted(tokenString) {
+			return helper.ErrorResponse(c, fiber.StatusUnauthorized, "token telah di-logout")
+		}
+
 		secretkey := os.Getenv("JWT_SECRET_KEY")
 		claims := &utils.JwtCustomClaims{}
 
@@ -37,8 +42,9 @@ func RequirePermission(requiredPermissions ...string) fiber.Handler {
 		c.Locals("role_name", claims.RoleName)
 		c.Locals("permissions", claims.Permissions)
 
+		// If no permissions required, just check if user is authenticated
 		if len(requiredPermissions) == 0 {
-			return helper.ErrorResponse(c, fiber.StatusForbidden, "akses belum diberikan")
+			return c.Next()
 		}
 
 		userPermissions := make(map[string]bool)

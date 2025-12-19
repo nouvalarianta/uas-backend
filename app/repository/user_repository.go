@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"time"
-	model"uas-backend/app/model"
+	model "uas-backend/app/model"
 
 	"github.com/google/uuid"
 )
@@ -21,6 +21,7 @@ type UserRepository interface {
 	Update(id uuid.UUID, req *model.UpdateUserRequest) (*model.User, error)
 	Delete(id uuid.UUID) error
 	GetPermissionsByRoleID(roleID uuid.UUID) ([]string, error)
+	ReplaceRole(id uuid.UUID, roleID uuid.UUID) (*model.User, error)
 }
 
 type userrepository struct {
@@ -127,18 +128,23 @@ func (r *userrepository) GetAll(search, sortBy, order string, limit, offset int)
 }
 
 func (r *userrepository) GetByID(id uuid.UUID) (*model.User, error) {
-	user := &model.User{}
+	user := &model.User{
+		Role: &model.Role{},
+	}
 	var createdAt, updatedAt sql.NullTime
 
 	query := `
-		SELECT u.id, u.username, u.email, u.full_name, u.role_id, u.is_active, u.created_at, u.updated_at
+		SELECT u.id, u.username, u.email, u.full_name, u.role_id, u.is_active, u.created_at, u.updated_at,
+		       r.id, r.name
 		FROM users u
+		LEFT JOIN roles r ON u.role_id = r.id
 		WHERE u.id = $1 AND u.is_active IS NULL
 	`
 
 	err := r.db.QueryRow(query, id).Scan(
 		&user.ID, &user.Username, &user.Email, &user.FullName,
 		&user.RoleID, &user.IsActive, &createdAt, &updatedAt,
+		&user.Role.ID, &user.Role.Name,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -274,4 +280,25 @@ func (r *userrepository) GetPermissionsByRoleID(roleID uuid.UUID) ([]string, err
 	}
 
 	return permissions, nil
+}
+
+func (r *userrepository) ReplaceRole(id uuid.UUID, roleID uuid.UUID) (*model.User, error) {
+	now := time.Now()
+	user := &model.User{}
+
+	query := `
+		UPDATE users
+		SET role_id = $1, updated_at = $2
+		WHERE id = $3 AND is_active IS NULL
+		RETURNING id, role_id, updated_at
+	`
+
+	err := r.db.QueryRow(
+		query, roleID, now, id,
+	).Scan(
+		&user.ID, &user.RoleID, &user.UpdatedAt,
+	)
+
+	return user, err
+
 }

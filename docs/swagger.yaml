@@ -1,0 +1,1188 @@
+basePath: /api
+definitions:
+  model.CreateAchievementRequest:
+    properties:
+      achievementType:
+        enum:
+        - academic
+        - competition
+        - organization
+        - publication
+        - certification
+        - other
+        type: string
+      description:
+        type: string
+      details:
+        additionalProperties: true
+        type: object
+      points:
+        minimum: 0
+        type: number
+      studentId:
+        type: string
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        maxLength: 500
+        minLength: 3
+        type: string
+    required:
+    - achievementType
+    - studentId
+    - title
+    type: object
+  model.CreateUserRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      password:
+        minLength: 6
+        type: string
+      role_id:
+        description: String UUID dari frontend
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - full_name
+    - password
+    - role_id
+    - username
+    type: object
+  model.LoginRequest:
+    properties:
+      password:
+        example: password123
+        type: string
+      username:
+        example: admin
+        type: string
+    type: object
+  model.RefreshTokenRequest:
+    properties:
+      refreshToken:
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        type: string
+    type: object
+  model.RejectAchievementRequest:
+    properties:
+      rejectionNote:
+        type: string
+    required:
+    - rejectionNote
+    type: object
+  model.UpdateAchievementRequest:
+    properties:
+      description:
+        type: string
+      details:
+        additionalProperties: true
+        type: object
+      points:
+        minimum: 0
+        type: number
+      tags:
+        items:
+          type: string
+        type: array
+      title:
+        maxLength: 500
+        minLength: 3
+        type: string
+    type: object
+  model.UpdateAdvisorRequest:
+    properties:
+      advisor_id:
+        example: 550e8400-e29b-41d4-a716-446655440000
+        type: string
+    required:
+    - advisor_id
+    type: object
+  model.UpdateUserRequest:
+    properties:
+      email:
+        type: string
+      full_name:
+        maxLength: 100
+        minLength: 3
+        type: string
+      role_id:
+        description: String UUID dari frontend
+        type: string
+      username:
+        maxLength: 50
+        minLength: 3
+        type: string
+    required:
+    - email
+    - full_name
+    - role_id
+    - username
+    type: object
+  model.UploadAttachmentRequest:
+    properties:
+      fileName:
+        type: string
+      fileSize:
+        type: integer
+      fileType:
+        type: string
+      fileUrl:
+        type: string
+    required:
+    - fileName
+    - fileSize
+    - fileType
+    type: object
+  model.VerifyAchievementRequest:
+    properties:
+      verificationNote:
+        type: string
+      verifiedBy:
+        type: string
+    required:
+    - verifiedBy
+    type: object
+host: localhost:3000
+info:
+  contact:
+    email: support@example.com
+    name: API Support
+  description: API Documentation for Achievement Management System with dual database
+    (PostgreSQL + MongoDB)
+  title: UAS Backend - Achievement Management API
+  version: "1.0"
+paths:
+  /achievements:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of all achievements with optional filters
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status (draft, submitted, verified, rejected)
+        in: query
+        name: status
+        type: string
+      - description: Filter by student ID (UUID)
+        in: query
+        name: studentId
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievements retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List All Achievements
+      tags:
+      - Achievements
+    post:
+      consumes:
+      - application/json
+      description: Create a new achievement (draft status)
+      parameters:
+      - description: Achievement data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateAchievementRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Achievement created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create New Achievement
+      tags:
+      - Achievements
+  /achievements/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete achievement (only draft/submitted status can be deleted)
+      parameters:
+      - description: Achievement ID (MongoDB ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid achievement ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Verified/rejected achievements cannot be deleted
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Achievement not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete Achievement
+      tags:
+      - Achievements
+    get:
+      consumes:
+      - application/json
+      description: Get achievement details by MongoDB ObjectID
+      parameters:
+      - description: Achievement ID (MongoDB ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid achievement ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Achievement not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Achievement by ID
+      tags:
+      - Achievements
+    put:
+      consumes:
+      - application/json
+      description: Update achievement details (only draft status can be updated)
+      parameters:
+      - description: Achievement ID (MongoDB ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Achievement data to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateAchievementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Only draft achievements can be updated
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Achievement not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Achievement
+      tags:
+      - Achievements
+  /achievements/{id}/reject:
+    post:
+      consumes:
+      - application/json
+      description: Reject achievement with note (Lecturer only)
+      parameters:
+      - description: Achievement ID (MongoDB ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Rejection note
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.RejectAchievementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement rejected successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - Only submitted achievements can be rejected
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Achievement not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reject Achievement
+      tags:
+      - Achievements
+  /achievements/{id}/submit:
+    post:
+      consumes:
+      - application/json
+      description: Submit achievement for verification (changes status from draft
+        to submitted)
+      parameters:
+      - description: Achievement ID (MongoDB ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement submitted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid achievement ID
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Only draft achievements can be submitted
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Achievement not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Submit Achievement
+      tags:
+      - Achievements
+  /achievements/{id}/upload:
+    post:
+      consumes:
+      - application/json
+      description: Upload attachment URLs for achievement
+      parameters:
+      - description: Achievement ID (MongoDB ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Attachment URLs
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UploadAttachmentRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attachment uploaded successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Achievement not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Upload Attachment
+      tags:
+      - Achievements
+  /achievements/{id}/verify:
+    post:
+      consumes:
+      - application/json
+      description: Verify achievement and award points (Lecturer only)
+      parameters:
+      - description: Achievement ID (MongoDB ObjectID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Verification data with points
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.VerifyAchievementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievement verified successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - Requires achievement:verify permission
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Achievement not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Verify Achievement
+      tags:
+      - Achievements
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout user and blacklist current token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized or invalid token
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: User Logout
+      tags:
+      - Authentication
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      description: Refresh access token using refresh token
+      parameters:
+      - description: Refresh token
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Token refreshed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or expired token
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid refresh token
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Refresh Access Token
+      tags:
+      - Authentication
+  /lecturers:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of all lecturers
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lecturers retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List All Lecturers
+      tags:
+      - Lecturers
+  /lecturers/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get lecturer details by ID
+      parameters:
+      - description: Lecturer ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Lecturer retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid lecturer ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Lecturer not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Lecturer by ID
+      tags:
+      - Lecturers
+  /lecturers/{id}/advisees:
+    get:
+      consumes:
+      - application/json
+      description: Get all students advised by a specific lecturer
+      parameters:
+      - description: Lecturer ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Advisees retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid lecturer ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Lecturer not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Lecturer's Advisees
+      tags:
+      - Lecturers
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and get JWT tokens (access token and refresh
+        token)
+      parameters:
+      - description: Login credentials
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful with token and user data
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User Login
+      tags:
+      - Authentication
+  /reports/statistics:
+    get:
+      consumes:
+      - application/json
+      description: Get overall achievement statistics with optional year filter
+      parameters:
+      - description: Filter by year (e.g., 2024)
+        in: query
+        name: year
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get System Statistics
+      tags:
+      - Reports
+  /reports/students/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get achievement statistics for a specific student
+      parameters:
+      - description: Student ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student report retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid student ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Student Achievement Report
+      tags:
+      - Reports
+  /students:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of all students
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Students retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List All Students
+      tags:
+      - Students
+  /students/{id}:
+    get:
+      consumes:
+      - application/json
+      description: Get student details by ID
+      parameters:
+      - description: Student ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid student ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Student by ID
+      tags:
+      - Students
+  /students/{id}/achievements:
+    get:
+      consumes:
+      - application/json
+      description: Get all achievements for a specific student with optional status
+        filter
+      parameters:
+      - description: Student ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      - description: Filter by status (draft, submitted, verified, rejected)
+        in: query
+        name: status
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Achievements retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid student ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get Student Achievements
+      tags:
+      - Students
+  /students/{id}/advisor:
+    put:
+      consumes:
+      - application/json
+      description: Update student's advisor lecturer (Admin only)
+      parameters:
+      - description: Student ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Advisor lecturer ID
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateAdvisorRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Advisor updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student or lecturer not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update Student Advisor
+      tags:
+      - Students
+  /users:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of all users (Admin only)
+      parameters:
+      - default: 1
+        description: Page number
+        in: query
+        name: page
+        type: integer
+      - default: 10
+        description: Items per page
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Users retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "403":
+          description: Forbidden - Requires user:manage permission
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: List All Users
+      tags:
+      - Users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user (Admin only)
+      parameters:
+      - description: User data
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body or validation error
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: User or email already exists
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Create New User
+      tags:
+      - Users
+  /users/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Soft delete user by ID (Admin only)
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Delete User
+      tags:
+      - Users
+    get:
+      consumes:
+      - application/json
+      description: Get user details by ID (Admin only)
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid user ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get User by ID
+      tags:
+      - Users
+    put:
+      consumes:
+      - application/json
+      description: Update user details (Admin only)
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User data to update
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: User updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update User
+      tags:
+      - Users
+  /users/{id}/role:
+    put:
+      consumes:
+      - application/json
+      description: Change user role (Admin only)
+      parameters:
+      - description: User ID (UUID)
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: New role ID (UUID)
+        in: query
+        name: role_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Role changed successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: User or role not found
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Change User Role
+      tags:
+      - Users
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

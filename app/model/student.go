@@ -18,3 +18,7 @@ type Student struct {
 	User    *User     `db:"-" json:"user,omitempty"`
 	Advisor *Lecturer `db:"-" json:"advisor,omitempty"`
 }
+
+type UpdateAdvisorRequest struct {
+	AdvisorID string `json:"advisor_id" validate:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
+}

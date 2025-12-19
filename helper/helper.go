@@ -1,9 +1,9 @@
 package helper
 
 import (
-	"fmt"
+	// "fmt"
 
-	"github.com/go-playground/validator/v10"
+	// "github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 )
 
@@ -15,7 +15,7 @@ type ValidationErrorResponse struct {
 // response helper
 func SuccessResponse(c *fiber.Ctx, code int, message string, data interface{}) error {
 	return c.Status(code).JSON(fiber.Map{
-		"success": true,
+		"status":  "success",
 		"message": message,
 		"data":    data,
 	})
@@ -23,30 +23,30 @@ func SuccessResponse(c *fiber.Ctx, code int, message string, data interface{}) e
 
 func ErrorResponse(c *fiber.Ctx, code int, message string) error {
 	return c.Status(code).JSON(fiber.Map{
-		"success": false,
+		"success": "error",
 		"message": message,
 	})
 }
 
-func ValidationError(c *fiber.Ctx, errors interface{}) error {
-	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-		"success": false,
-		"message": "Request body tidak valid",
-		"errors":  errors,
-	})
-}
+// func ValidationError(c *fiber.Ctx, errors interface{}) error {
+// 	return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+// 		"success": false,
+// 		"message": "Request body tidak valid",
+// 		"errors":  errors,
+// 	})
+// }
 
-// validator
-func FormatValidationErrors(err error) []ValidationErrorResponse {
-	var errors []ValidationErrorResponse
+// // validator
+// func FormatValidationErrors(err error) []ValidationErrorResponse {
+// 	var errors []ValidationErrorResponse
 
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
-		for _, fieldErr := range validationErrors {
-			errors = append(errors, ValidationErrorResponse{
-				Field:   fieldErr.Field(),
-				Message: fmt.Sprintf("Aturan validasi '%s' gagal", fieldErr.Tag()),
-			})
-		}
-	}
-	return errors
-}
+// 	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+// 		for _, fieldErr := range validationErrors {
+// 			errors = append(errors, ValidationErrorResponse{
+// 				Field:   fieldErr.Field(),
+// 				Message: fmt.Sprintf("Aturan validasi '%s' gagal", fieldErr.Tag()),
+// 			})
+// 		}
+// 	}
+// 	return errors
+// }

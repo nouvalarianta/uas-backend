@@ -36,6 +36,14 @@ type UpdateUserRequest struct {
 }
 
 type LoginRequest struct {
-	Username string `json:"username"`
-	Password string `json:"password"`
+	Username string `json:"username" example:"admin"`
+	Password string `json:"password" example:"password123"`
+}
+
+type RefreshTokenRequest struct {
+	RefreshToken string `json:"refreshToken" example:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."`
+}
+
+type ReplaceRoleRequest struct {
+	RoleID string `json:"role_id" validate:"required,uuid" example:"550e8400-e29b-41d4-a716-446655440000"`
 }
